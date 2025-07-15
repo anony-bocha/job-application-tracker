@@ -7,6 +7,6 @@ class JobApplication(models.Model):
     position = models.CharField(max_length=100)
     status = models.CharField(max_length=50, default="Applied")
     applied_date = models.DateField(auto_now_add=True)
-
+    notes = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"{self.company} - {self.position}"
