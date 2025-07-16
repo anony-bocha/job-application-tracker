@@ -1,9 +1,107 @@
-{% extends 'base.html' %}
+{% extends 'applications/base.html' %}
+
+{% block title %}Edit {{ job.company }} Application | Job Tracker{% endblock %}
+
 {% block content %}
-<h2>Edit Application</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Save</button>
-</form>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">
+                            <i class="bi bi-pencil-square text-primary me-2"></i>
+                            Edit Application
+                        </h2>
+                        <a href="{% url 'job_list' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-x-lg"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row g-3 mb-4">
+                            <!-- Company Field -->
+                            <div class="col-md-6">
+                                <label for="{{ form.company.id_for_label }}" class="form-label">
+                                    <i class="bi bi-building me-1"></i> Company
+                                </label>
+                                {{ form.company }}
+                                <div class="invalid-feedback">
+                                    Please provide a company name.
+                                </div>
+                            </div>
+                            
+                            <!-- Position Field -->
+                            <div class="col-md-6">
+                                <label for="{{ form.position.id_for_label }}" class="form-label">
+                                    <i class="bi bi-person-badge me-1"></i> Position
+                                </label>
+                                {{ form.position }}
+                                <div class="invalid-feedback">
+                                    Please provide a position title.
+                                </div>
+                            </div>
+                            
+                            <!-- Status Field -->
+                            <div class="col-md-4">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">
+                                    <i class="bi bi-flag me-1"></i> Status
+                                </label>
+                                {{ form.status }}
+                            </div>
+                            
+                            <!-- Applied Date Field -->
+                            <div class="col-md-4">
+                                <label for="{{ form.applied_date.id_for_label }}" class="form-label">
+                                    <i class="bi bi-calendar me-1"></i> Applied Date
+                                </label>
+                                {{ form.applied_date }}
+                            </div>
+                            
+                            <!-- Notes Field -->
+                            <div class="col-12 mt-2">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                    <i class="bi bi-journal-text me-1"></i> Notes
+                                </label>
+                                {{ form.notes }}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end border-top pt-3">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-save me-2"></i> Save Changes
+                            </button>
+                            <a href="{% url 'delete_application' object.pk %}" class="btn btn-danger px-4">
+                                <i class="bi bi-trash me-2"></i> Delete
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Client-side form validation
+(function () {
+    'use strict'
+    
+    const forms = document.querySelectorAll('.needs-validation')
+    
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
 {% endblock %}
