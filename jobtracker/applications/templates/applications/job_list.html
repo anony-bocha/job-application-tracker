@@ -1,36 +1,78 @@
 {% extends 'applications/base.html' %}
 {% block content %}
-<h1>Your Applications</h1>
-<a href="{% url 'add_application' %}">+ Add New</a>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Your Job Applications</h1>
+        <a href="{% url 'add_application' %}" class="btn btn-success">
+            <i class="bi bi-plus-lg"></i> Add New
+        </a>
+    </div>
 
-<!-- Status Filter -->
-<div>
-    <strong>Filter by Status:</strong>
-    <a href="?status=Applied">Applied</a> | 
-    <a href="?status=Interview">Interview</a> | 
-    <a href="?status=Offer">Offer</a>
+    <!-- Status Filter Dropdown -->
+    <div class="mb-4">
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="statusFilter" data-bs-toggle="dropdown">
+                Filter by Status: {% if request.GET.status %}{{ request.GET.status }}{% else %}All{% endif %}
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="?">All Applications</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="?status=Applied">Applied</a></li>
+                <li><a class="dropdown-item" href="?status=Interview">Interview</a></li>
+                <li><a class="dropdown-item" href="?status=Offer">Offer</a></li>
+                <li><a class="dropdown-item" href="?status=Rejected">Rejected</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Applications Table -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Company</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td><strong>{{ job.company }}</strong></td>
+                    <td>{{ job.position }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if job.status == 'Applied' %}bg-primary
+                            {% elif job.status == 'Interview' %}bg-warning text-dark
+                            {% elif job.status == 'Offer' %}bg-success
+                            {% else %}bg-secondary
+                            {% endif %}">
+                            {{ job.status }}
+                        </span>
+                    </td>
+                    <td>{{ job.applied_date|date:"M d, Y" }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'edit_application' job.pk %}" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'delete_application' job.pk %}" class="btn btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                        No applications found. <a href="{% url 'add_application' %}">Add your first application</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-
-<!-- Applications Table -->
-<table>
-    <tr>
-        <th>Company</th>
-        <th>Position</th>
-        <th>Status</th>
-        <th>Date</th>
-        <th>Actions</th>
-    </tr>
-    {% for job in jobs %}
-    <tr>
-        <td>{{ job.company }}</td>
-        <td>{{ job.position }}</td>
-        <td>{{ job.status }}</td>
-        <td>{{ job.applied_date }}</td>
-        <td>
-            <a href="{% url 'edit_application' job.pk %}">Edit</a> | 
-            <a href="{% url 'delete_application' job.pk %}">Delete</a>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
 {% endblock %}

@@ -1,10 +1,77 @@
 {% extends "base.html" %}
 
+{% block title %}Login | Job Tracker{% endblock %}
+
 {% block content %}
-<h2>Login</h2>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Login</button>
-</form>
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <div class="text-center mb-4">
+          <i class="bi bi-person-circle display-5 text-primary mb-3"></i>
+          <h2 class="h4">Sign in to Job Tracker</h2>
+          <p class="text-muted">Track your job applications effectively</p>
+        </div>
+
+        {% if form.errors %}
+        <div class="alert alert-danger alert-dismissible fade show">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Your username and password didn't match. Please try again.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          
+          <div class="mb-3">
+            <label for="{{ form.username.id_for_label }}" class="form-label">
+              <i class="bi bi-person-fill me-1"></i>Username
+            </label>
+            <input type="text" 
+                   class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
+                   id="{{ form.username.id_for_label }}"
+                   name="{{ form.username.html_name }}"
+                   placeholder="Enter your username"
+                   required>
+            {% for error in form.username.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.password.id_for_label }}" class="form-label">
+              <i class="bi bi-lock-fill me-1"></i>Password
+            </label>
+            <input type="password" 
+                   class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
+                   id="{{ form.password.id_for_label }}"
+                   name="{{ form.password.html_name }}"
+                   placeholder="Enter your password"
+                   required>
+            {% for error in form.password.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="rememberMe">
+              <label class="form-check-label" for="rememberMe">Remember me</label>
+            </div>
+            <a href="{% url 'password_reset' %}" class="text-decoration-none">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+          </button>
+
+          <div class="text-center pt-3 border-top">
+            <p class="text-muted">Don't have an account? <a href="{% url 'signup' %}" class="text-decoration-none">Sign up</a></p>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
