@@ -1,10 +1,23 @@
 {% extends "applications/base.html" %}
 
+{% load crispy_forms_tags %}
+
 {% block content %}
-<h2>Add New Application</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Save</button>
-</form>
+<div class="card mt-4">
+    <div class="card-header">
+        <h2>Add New Application</h2>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {% if form %}
+                {{ form|crispy }}
+            {% else %}
+                {{ form.as_p }}
+            {% endif %}
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="{% url 'job_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
 {% endblock %}

@@ -1,4 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'applications/base.html' %}
+
+{% load crispy_forms_tags %}
 
 {% block content %}
 <div class="card mb-4">
@@ -14,7 +16,8 @@
             </div>
             <div class="col-md-6">
                 <p><strong>Salary Range:</strong> 
-                   {{ application.salary_min|default:"N/A" }} - {{ application.salary_max|default:"N/A" }}</p>
+                    {{ application.salary_min|default:"N/A" }} - {{ application.salary_max|default:"N/A" }}
+                </p>
                 <p><strong>Remote:</strong> {{ application.is_remote|yesno:"Yes,No" }}</p>
             </div>
         </div>
@@ -23,7 +26,7 @@
             <p>{{ application.notes|linebreaksbr|default:"No notes" }}</p>
         </div>
     </div>
-    <div class="card-footer">
+    <div class="card-footer d-flex justify-content-between">
         <a href="{% url 'edit_application' application.pk %}" class="btn btn-sm btn-warning">Edit</a>
         <a href="{% url 'delete_application' application.pk %}" class="btn btn-sm btn-danger">Delete</a>
     </div>
@@ -37,21 +40,23 @@
         <form method="post">
             {% csrf_token %}
             {{ interview_form|crispy }}
-            <button type="submit" class="btn btn-sm btn-primary">Add Interview</button>
+            <button type="submit" class="btn btn-sm btn-primary mt-2">Add Interview</button>
         </form>
-        
+
         <div class="mt-4">
-            {% for interview in interviews %}
-            <div class="card mb-2">
-                <div class="card-body">
-                    <h5>{{ interview.interview_type }}</h5>
-                    <p><strong>Date:</strong> {{ interview.date }}</p>
-                    <p>{{ interview.notes }}</p>
+            {% if interviews %}
+                {% for interview in interviews %}
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <h5>{{ interview.interview_type }}</h5>
+                        <p><strong>Date:</strong> {{ interview.date }}</p>
+                        <p>{{ interview.notes|linebreaksbr }}</p>
+                    </div>
                 </div>
-            </div>
-            {% empty %}
-            <p>No interviews scheduled yet.</p>
-            {% endfor %}
+                {% endfor %}
+            {% else %}
+                <p>No interviews scheduled yet.</p>
+            {% endif %}
         </div>
     </div>
 </div>

@@ -1,6 +1,5 @@
 from django import forms
 from .models import JobApplication, Company, Interview
-from django.db.models import Q
 
 class JobApplicationForm(forms.ModelForm):
     class Meta:
@@ -19,8 +18,10 @@ class JobApplicationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user:
             self.fields['company'].queryset = Company.objects.filter(
-                Q(jobapplication__user=user) | Q(user=user)
+                jobapplication__user=user
             ).distinct()
+        else:
+            self.fields['company'].queryset = Company.objects.all()
 
 class InterviewForm(forms.ModelForm):
     class Meta:
