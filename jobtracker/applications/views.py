@@ -6,6 +6,8 @@ from django.urls import reverse_lazy
 from django.contrib.auth import logout
 from .models import JobApplication
 from .forms import JobApplicationForm, InterviewForm
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
 
 def custom_logout(request):
     logout(request)
@@ -108,3 +110,13 @@ class ApplicationDeleteView(DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Application deleted successfully')
         return super().delete(request, *args, **kwargs)
+def signup(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('job_list')
+    else:
+        form = UserCreationForm()
+    return render(request, 'registration/signup.html', {'form': form})
