@@ -6,7 +6,7 @@ class Company(models.Model):
     name = models.CharField(max_length=100)
     website = models.URLField(blank=True)
     glassdoor_rating = models.FloatField(null=True, blank=True)
-    notes = models.TextField(blank=True)
+    notes = models.TextField(default='', blank=True)
 
     def __str__(self):
         return self.name
@@ -37,7 +37,7 @@ class JobApplication(models.Model):
     status = models.CharField(max_length=2, choices=STATUS_CHOICES, default='AP')
     source = models.CharField(max_length=2, choices=SOURCE_CHOICES, blank=True)
     applied_date = models.DateField()
-    notes = models.TextField(blank=True)
+    notes = models.TextField(default='', blank=True)  # <-- Added default='' here
     salary_min = models.PositiveIntegerField(null=True, blank=True)
     salary_max = models.PositiveIntegerField(null=True, blank=True)
     is_remote = models.BooleanField(default=False)
