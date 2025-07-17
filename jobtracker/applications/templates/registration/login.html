@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "applications/base.html" %}
 
 {% block title %}Login | Job Tracker{% endblock %}
 
@@ -21,7 +21,7 @@
         </div>
         {% endif %}
 
-        <form method="post" novalidate>
+        <form method="post" action="{% url 'login' %}" novalidate>
           {% csrf_token %}
           
           <div class="mb-3">
@@ -56,7 +56,7 @@
 
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="rememberMe">
+              <input class="form-check-input" type="checkbox" id="rememberMe" name="remember">
               <label class="form-check-label" for="rememberMe">Remember me</label>
             </div>
             <a href="{% url 'password_reset' %}" class="text-decoration-none">Forgot password?</a>

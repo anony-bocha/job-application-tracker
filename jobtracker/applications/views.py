@@ -3,15 +3,18 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.generic import DeleteView
 from django.urls import reverse_lazy
-
+from django.contrib.auth import logout
 from .models import JobApplication
-from .forms import JobApplicationForm, InterviewForm  # Make sure InterviewForm exists
+from .forms import JobApplicationForm, InterviewForm
+
+def custom_logout(request):
+    logout(request)
+    return redirect('login')
 
 @login_required
 def job_list(request):
     jobs = JobApplication.objects.filter(user=request.user).select_related('company')
     
-    # Enhanced filtering
     filters = {
         'status': request.GET.get('status'),
         'company': request.GET.get('company'),
@@ -100,7 +103,6 @@ class ApplicationDeleteView(DeleteView):
     template_name = 'applications/confirm_delete.html'
     
     def get_queryset(self):
-        """Ensure users can only delete their own applications"""
         return super().get_queryset().filter(user=self.request.user)
     
     def delete(self, request, *args, **kwargs):
