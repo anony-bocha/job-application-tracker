@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>{{ application.company }} - {{ application.position }}</h2>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Status:</strong> {{ application.get_status_display }}</p>
+                <p><strong>Applied Date:</strong> {{ application.applied_date }}</p>
+                <p><strong>Source:</strong> {{ application.get_source_display }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Salary Range:</strong> 
+                   {{ application.salary_min|default:"N/A" }} - {{ application.salary_max|default:"N/A" }}</p>
+                <p><strong>Remote:</strong> {{ application.is_remote|yesno:"Yes,No" }}</p>
+            </div>
+        </div>
+        <div class="mt-3">
+            <h4>Notes</h4>
+            <p>{{ application.notes|linebreaksbr|default:"No notes" }}</p>
+        </div>
+    </div>
+    <div class="card-footer">
+        <a href="{% url 'edit_application' application.pk %}" class="btn btn-sm btn-warning">Edit</a>
+        <a href="{% url 'delete_application' application.pk %}" class="btn btn-sm btn-danger">Delete</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Interviews</h3>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ interview_form|crispy }}
+            <button type="submit" class="btn btn-sm btn-primary">Add Interview</button>
+        </form>
+        
+        <div class="mt-4">
+            {% for interview in interviews %}
+            <div class="card mb-2">
+                <div class="card-body">
+                    <h5>{{ interview.interview_type }}</h5>
+                    <p><strong>Date:</strong> {{ interview.date }}</p>
+                    <p>{{ interview.notes }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <p>No interviews scheduled yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

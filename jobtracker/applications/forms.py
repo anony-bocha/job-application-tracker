@@ -1,21 +1,32 @@
 from django import forms
-from .models import JobApplication
-
-STATUS_CHOICES = [
-    ('Applied', 'Applied'),
-    ('Interview', 'Interview'),
-    ('Offer', 'Offer'),
-    ('Rejected', 'Rejected'),
-]
+from .models import JobApplication, Company, Interview
+from django.db.models import Q
 
 class JobApplicationForm(forms.ModelForm):
-    status = forms.ChoiceField(choices=STATUS_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
-    notes = forms.CharField(widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}), required=False)
-
     class Meta:
         model = JobApplication
-        fields = ['company', 'position', 'status', 'notes']
+        fields = [
+            'company', 'position', 'status', 'source',
+            'applied_date', 'notes', 'salary_min',
+            'salary_max', 'is_remote', 'referral_contact'
+        ]
         widgets = {
-            'company': forms.TextInput(attrs={'class': 'form-control'}),
-            'position': forms.TextInput(attrs={'class': 'form-control'}),
+            'applied_date': forms.DateInput(attrs={'type': 'date'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['company'].queryset = Company.objects.filter(
+                Q(jobapplication__user=user) | Q(user=user)
+            ).distinct()
+
+class InterviewForm(forms.ModelForm):
+    class Meta:
+        model = Interview
+        fields = ['interview_type', 'interviewer', 'date', 'notes', 'follow_up']
+        widgets = {
+            'date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
         }
