@@ -1,18 +1,22 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.db import models
+from django.db.models import Count
 from django.contrib.auth.decorators import login_required
-from .forms import UserProfileForm
+from django.contrib.auth import logout, login
 from django.views.generic import DeleteView
 from django.urls import reverse_lazy
-from django.contrib.auth import logout
+
+from .forms import (
+    JobFilterForm, UserProfileForm, JobApplicationForm,
+    InterviewForm, CustomUserCreationForm
+)
 from .models import JobApplication
-from .forms import JobApplicationForm, InterviewForm
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login
-from .forms import CustomUserCreationForm
+
 def custom_logout(request):
     logout(request)
     return redirect('login')
+
 @login_required
 def profile(request):
     if request.method == 'POST':
@@ -24,29 +28,59 @@ def profile(request):
     else:
         form = UserProfileForm(instance=request.user)
     return render(request, 'registration/profile.html', {'form': form})
+
 @login_required
 def job_list(request):
-    jobs = JobApplication.objects.filter(user=request.user).select_related('company')
-    
-    filters = {
-        'status': request.GET.get('status'),
-        'company': request.GET.get('company'),
-        'is_remote': request.GET.get('is_remote') == 'on'
-    }
-    
-    if filters['status']:
-        jobs = jobs.filter(status=filters['status'])
-    if filters['company']:
-        jobs = jobs.filter(company__name__icontains=filters['company'])
-    if filters['is_remote']:
-        jobs = jobs.filter(is_remote=True)
+    applications = JobApplication.objects.filter(user=request.user).order_by('-applied_date')
+    form = JobFilterForm(request.GET or None)
+
+    if form.is_valid():
+        status = form.cleaned_data.get('status')
+        source = form.cleaned_data.get('source')
+        search = form.cleaned_data.get('search')
+
+        if status:
+            applications = applications.filter(status=status)
+        if source:
+            applications = applications.filter(source=source)
+        if search:
+            applications = applications.filter(
+                models.Q(company__name__icontains=search) |
+                models.Q(position__icontains=search)
+            )
+
+    # Dashboard summary counts on filtered queryset
+    total_applications = applications.count()
+    total_offers = applications.filter(status='OF').count()
+    total_rejected = applications.filter(status='RJ').count()
+    total_accepted = applications.filter(status='AC').count()
 
     context = {
-        'jobs': jobs.order_by('-applied_date'),
-        'status_choices': JobApplication.STATUS_CHOICES,
-        'current_filters': filters
+        'applications': applications,
+        'form': form,
+        'total_applications': total_applications,
+        'total_offers': total_offers,
+        'total_rejected': total_rejected,
+        'total_accepted': total_accepted,
     }
     return render(request, 'applications/job_list.html', context)
+
+@login_required
+def dashboard(request):
+    user_apps = JobApplication.objects.filter(user=request.user)
+
+    total_apps = user_apps.count()
+    status_counts = user_apps.values('status').annotate(count=Count('status'))
+    source_counts = user_apps.values('source').annotate(count=Count('source'))
+
+    recent_apps = user_apps.order_by('-applied_date')[:5]
+
+    return render(request, 'applications/dashboard.html', {
+        'total_apps': total_apps,
+        'status_counts': status_counts,
+        'source_counts': source_counts,
+        'recent_apps': recent_apps,
+    })
 
 @login_required
 def application_detail(request, pk):
@@ -55,8 +89,8 @@ def application_detail(request, pk):
         pk=pk,
         user=request.user
     )
-    interviews = application.interview_set.all()
-    
+    interviews = application.interviews.all()
+
     if request.method == 'POST':
         interview_form = InterviewForm(request.POST)
         if interview_form.is_valid():
@@ -114,13 +148,14 @@ class ApplicationDeleteView(DeleteView):
     model = JobApplication
     success_url = reverse_lazy('job_list')
     template_name = 'applications/confirm_delete.html'
-    
+
     def get_queryset(self):
         return super().get_queryset().filter(user=self.request.user)
-    
+
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Application deleted successfully')
         return super().delete(request, *args, **kwargs)
+
 def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)

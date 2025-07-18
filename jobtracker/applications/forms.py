@@ -7,7 +7,13 @@ from crispy_forms.layout import Submit, Layout, Row, Column, Field
 from crispy_forms.bootstrap import PrependedText
 from django import forms
 
+class JobFilterForm(forms.Form):
+    STATUS_CHOICES = [('', 'All')] + list(JobApplication.STATUS_CHOICES)
+    SOURCE_CHOICES = [('', 'All')] + list(JobApplication.SOURCE_CHOICES)
 
+    status = forms.ChoiceField(choices=STATUS_CHOICES, required=False, label='Status')
+    source = forms.ChoiceField(choices=SOURCE_CHOICES, required=False, label='Source')
+    search = forms.CharField(max_length=100, required=False, label='Search')
 class UserProfileForm(forms.ModelForm):
     email = forms.EmailField(required=True)
 
