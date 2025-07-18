@@ -12,8 +12,10 @@ from .forms import (
     InterviewForm, CustomUserCreationForm
 )
 from .models import JobApplication
-import csv
-from django.http import HttpResponse
+from django.utils import timezone
+from datetime import timedelta
+from .models import Interview
+from django.http import HttpResponse 
 def custom_logout(request):
     logout(request)
     return redirect('login')
@@ -80,19 +82,29 @@ def job_list(request):
 @login_required
 def dashboard(request):
     user_apps = JobApplication.objects.filter(user=request.user)
+    user_interviews = Interview.objects.filter(application__user=request.user)
 
     total_apps = user_apps.count()
     status_counts = user_apps.values('status').annotate(count=Count('status'))
     source_counts = user_apps.values('source').annotate(count=Count('source'))
 
+    total_interviews = user_interviews.count()
+    upcoming_interviews = user_interviews.filter(date__gte=timezone.now(), date__lte=timezone.now() + timedelta(days=7)).order_by('date')
+    interview_type_counts = user_interviews.values('interview_type').annotate(count=Count('interview_type'))
+
     recent_apps = user_apps.order_by('-applied_date')[:5]
 
-    return render(request, 'applications/dashboard.html', {
+    context = {
         'total_apps': total_apps,
         'status_counts': status_counts,
         'source_counts': source_counts,
         'recent_apps': recent_apps,
-    })
+        'total_interviews': total_interviews,
+        'upcoming_interviews': upcoming_interviews,
+        'interview_type_counts': interview_type_counts,
+    }
+
+    return render(request, 'applications/dashboard.html', context)
 
 @login_required
 def application_detail(request, pk):
