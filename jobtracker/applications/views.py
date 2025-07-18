@@ -12,7 +12,8 @@ from .forms import (
     InterviewForm, CustomUserCreationForm
 )
 from .models import JobApplication
-
+import csv
+from django.http import HttpResponse
 def custom_logout(request):
     logout(request)
     return redirect('login')
@@ -177,3 +178,41 @@ def signup(request):
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/signup.html', {'form': form})
+@login_required
+def export_applications_csv(request):
+    applications = JobApplication.objects.filter(user=request.user).order_by('-applied_date')
+
+    # Apply filters if present
+    status = request.GET.get('status')
+    source = request.GET.get('source')
+    search = request.GET.get('search')
+
+    if status:
+        applications = applications.filter(status=status)
+    if source:
+        applications = applications.filter(source=source)
+    if search:
+        applications = applications.filter(
+            models.Q(company__name__icontains=search) |
+            models.Q(position__icontains=search)
+        )
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="job_applications.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Company', 'Position', 'Status', 'Source', 'Applied Date', 'Salary Min', 'Salary Max', 'Is Remote'])
+
+    for app in applications:
+        writer.writerow([
+            app.company.name,
+            app.position,
+            app.get_status_display(),
+            app.get_source_display(),
+            app.applied_date,
+            app.salary_min,
+            app.salary_max,
+            "Yes" if app.is_remote else "No"
+        ])
+
+    return response

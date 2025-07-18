@@ -46,6 +46,9 @@
         <a href="{% url 'add_application' %}" class="btn btn-success">
             <i class="bi bi-plus-lg"></i> Add New
         </a>
+        <a href="{% url 'export_applications_csv' %}?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.source %}source={{ request.GET.source }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}{% endif %}" class="btn btn-outline-secondary">
+    <i class="bi bi-download"></i> Export CSV
+</a>
     </div>
 
     <!-- Filtering and Search -->
