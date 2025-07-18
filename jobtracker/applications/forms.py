@@ -1,5 +1,44 @@
 from django import forms
 from .models import JobApplication, Company, Interview
+from django import forms
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit, Layout, Row, Column, Field
+from crispy_forms.bootstrap import PrependedText
+
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True, help_text="Required. Enter a valid email address.")
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2']
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            Row(
+                Column(PrependedText('username', '<i class="bi bi-person-fill"></i>'), css_class='col-md-6'),
+                Column(PrependedText('email', '<i class="bi bi-envelope-fill"></i>'), css_class='col-md-6'),
+            ),
+            Row(
+                Column(PrependedText('first_name', '<i class="bi bi-person-badge-fill"></i>'), css_class='col-md-6'),
+                Column(PrependedText('last_name', '<i class="bi bi-person-badge-fill"></i>'), css_class='col-md-6'),
+            ),
+            Row(
+                Column(PrependedText('password1', '<i class="bi bi-lock-fill"></i>'), css_class='col-md-6'),
+                Column(PrependedText('password2', '<i class="bi bi-lock-fill"></i>'), css_class='col-md-6'),
+            ),
+            Submit('submit', 'Sign Up', css_class='btn btn-primary btn-block mt-3')
+        )
 
 class JobApplicationForm(forms.ModelForm):
     class Meta:
