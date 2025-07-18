@@ -1,11 +1,26 @@
 from django import forms
 from .models import JobApplication, Company, Interview
-from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Row, Column, Field
 from crispy_forms.bootstrap import PrependedText
+from django import forms
+
+
+class UserProfileForm(forms.ModelForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name']
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        qs = User.objects.exclude(pk=self.instance.pk).filter(email=email)
+        if qs.exists():
+            raise forms.ValidationError("This email is already in use.")
+        return email
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, help_text="Required. Enter a valid email address.")

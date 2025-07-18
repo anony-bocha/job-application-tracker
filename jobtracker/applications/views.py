@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from .forms import UserProfileForm
 from django.views.generic import DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth import logout
@@ -12,7 +13,17 @@ from .forms import CustomUserCreationForm
 def custom_logout(request):
     logout(request)
     return redirect('login')
-
+@login_required
+def profile(request):
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your profile has been updated successfully.")
+            return redirect('profile')
+    else:
+        form = UserProfileForm(instance=request.user)
+    return render(request, 'registration/profile.html', {'form': form})
 @login_required
 def job_list(request):
     jobs = JobApplication.objects.filter(user=request.user).select_related('company')
