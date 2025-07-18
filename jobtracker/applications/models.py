@@ -49,7 +49,7 @@ class JobApplication(models.Model):
     salary_max = models.PositiveIntegerField(null=True, blank=True)
     is_remote = models.BooleanField(default=False)
     referral_contact = models.CharField(max_length=100, blank=True)
-
+    tags = models.ManyToManyField(Tag, blank=True, related_name="applications")
     def get_absolute_url(self):
         return reverse('application_detail', kwargs={'pk': self.pk})
 

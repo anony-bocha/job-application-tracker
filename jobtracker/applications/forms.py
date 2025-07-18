@@ -1,11 +1,15 @@
 from django import forms
-from .models import JobApplication, Company, Interview, Tag
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Row, Column, Field
+from crispy_forms.layout import Submit, Layout, Row, Column
 from crispy_forms.bootstrap import PrependedText
 
+from .models import JobApplication, Company, Interview, Tag
+
+# --------------------------
+# Job Filter Form
+# --------------------------
 class JobFilterForm(forms.Form):
     STATUS_CHOICES = [('', 'All')] + list(JobApplication.STATUS_CHOICES)
     SOURCE_CHOICES = [('', 'All')] + list(JobApplication.SOURCE_CHOICES)
@@ -14,6 +18,9 @@ class JobFilterForm(forms.Form):
     source = forms.ChoiceField(choices=SOURCE_CHOICES, required=False, label='Source')
     search = forms.CharField(max_length=100, required=False, label='Search')
 
+# --------------------------
+# User Profile Form
+# --------------------------
 class UserProfileForm(forms.ModelForm):
     email = forms.EmailField(required=True)
 
@@ -23,11 +30,13 @@ class UserProfileForm(forms.ModelForm):
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        qs = User.objects.exclude(pk=self.instance.pk).filter(email=email)
-        if qs.exists():
+        if User.objects.exclude(pk=self.instance.pk).filter(email=email).exists():
             raise forms.ValidationError("This email is already in use.")
         return email
 
+# --------------------------
+# Custom User Creation Form
+# --------------------------
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, help_text="Required. Enter a valid email address.")
 
@@ -61,6 +70,9 @@ class CustomUserCreationForm(UserCreationForm):
             Submit('submit', 'Sign Up', css_class='btn btn-primary btn-block mt-3')
         )
 
+# --------------------------
+# Job Application Form
+# --------------------------
 class JobApplicationForm(forms.ModelForm):
     tags = forms.ModelMultipleChoiceField(
         queryset=Tag.objects.all(),
@@ -85,12 +97,15 @@ class JobApplicationForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if user:
-            self.fields['company'].queryset = Company.objects.filter(
-                jobapplication__user=user
-            ).distinct()
+            self.fields['company'].queryset = Company.objects.filter(jobapplication__user=user).distinct()
+            self.fields['tags'].queryset = Tag.objects.filter(jobapplication__user=user).distinct()
         else:
             self.fields['company'].queryset = Company.objects.all()
+            self.fields['tags'].queryset = Tag.objects.all()
 
+# --------------------------
+# Interview Form
+# --------------------------
 class InterviewForm(forms.ModelForm):
     class Meta:
         model = Interview
