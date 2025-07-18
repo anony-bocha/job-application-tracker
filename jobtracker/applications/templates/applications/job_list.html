@@ -118,6 +118,49 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
+        <!-- Pagination Controls -->
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if applications.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ applications.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        <li class="page-item disabled">
+            <span class="page-link">
+                Page {{ applications.number }} of {{ applications.paginator.num_pages }}
+            </span>
+        </li>
+
+        {% if applications.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ applications.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ applications.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
+        {% endif %}
+    </ul>
+</nav>
+
+    </div>``
 </div>
 {% endblock %}

@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout, login
 from django.views.generic import DeleteView
 from django.urls import reverse_lazy
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .forms import (
     JobFilterForm, UserProfileForm, JobApplicationForm,
     InterviewForm, CustomUserCreationForm
@@ -49,14 +49,24 @@ def job_list(request):
                 models.Q(position__icontains=search)
             )
 
-    # Dashboard summary counts on filtered queryset
+    # Pagination
+    paginator = Paginator(applications, 10)  # Show 10 applications per page
+    page_number = request.GET.get('page')
+    try:
+        applications_page = paginator.page(page_number)
+    except PageNotAnInteger:
+        applications_page = paginator.page(1)
+    except EmptyPage:
+        applications_page = paginator.page(paginator.num_pages)
+
+    # Dashboard summary
     total_applications = applications.count()
     total_offers = applications.filter(status='OF').count()
     total_rejected = applications.filter(status='RJ').count()
     total_accepted = applications.filter(status='AC').count()
 
     context = {
-        'applications': applications,
+        'applications': applications_page,
         'form': form,
         'total_applications': total_applications,
         'total_offers': total_offers,
@@ -64,6 +74,7 @@ def job_list(request):
         'total_accepted': total_accepted,
     }
     return render(request, 'applications/job_list.html', context)
+
 
 @login_required
 def dashboard(request):
