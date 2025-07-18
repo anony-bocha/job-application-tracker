@@ -1,11 +1,10 @@
 from django import forms
-from .models import JobApplication, Company, Interview
+from .models import JobApplication, Company, Interview, Tag
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Row, Column, Field
 from crispy_forms.bootstrap import PrependedText
-from django import forms
 
 class JobFilterForm(forms.Form):
     STATUS_CHOICES = [('', 'All')] + list(JobApplication.STATUS_CHOICES)
@@ -14,6 +13,7 @@ class JobFilterForm(forms.Form):
     status = forms.ChoiceField(choices=STATUS_CHOICES, required=False, label='Status')
     source = forms.ChoiceField(choices=SOURCE_CHOICES, required=False, label='Source')
     search = forms.CharField(max_length=100, required=False, label='Search')
+
 class UserProfileForm(forms.ModelForm):
     email = forms.EmailField(required=True)
 
@@ -62,12 +62,19 @@ class CustomUserCreationForm(UserCreationForm):
         )
 
 class JobApplicationForm(forms.ModelForm):
+    tags = forms.ModelMultipleChoiceField(
+        queryset=Tag.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label='Tags'
+    )
+
     class Meta:
         model = JobApplication
         fields = [
             'company', 'position', 'status', 'source',
             'applied_date', 'notes', 'salary_min',
-            'salary_max', 'is_remote', 'referral_contact'
+            'salary_max', 'is_remote', 'referral_contact', 'tags'
         ]
         widgets = {
             'applied_date': forms.DateInput(attrs={'type': 'date'}),

@@ -1,6 +1,11 @@
 from django.contrib import admin
 from .models import Company, JobApplication, Interview
+from .models import Tag
 
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    search_fields = ['name']
 @admin.register(JobApplication)
 class JobApplicationAdmin(admin.ModelAdmin):
     list_display = ('company', 'position', 'status', 'user', 'applied_date', 'is_remote')
