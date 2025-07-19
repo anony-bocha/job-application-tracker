@@ -4,7 +4,7 @@ from django.contrib.auth.forms import UserCreationForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Row, Column
 from crispy_forms.bootstrap import PrependedText
-
+from .models import JobPosting
 from .models import JobApplication, Company, Interview, Tag
 
 ROLE_CHOICES = (
@@ -122,4 +122,20 @@ class InterviewForm(forms.ModelForm):
         widgets = {
             'date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
             'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+class JobPostingForm(forms.ModelForm):
+    class Meta:
+        model = JobPosting
+        fields = [
+            'title',
+            'description',
+            'company_name',
+            'location',
+            'is_remote',
+            'salary_min',
+            'salary_max',
+            'is_active',
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 4}),
         }

@@ -131,3 +131,24 @@ def save_user_profile(sender, instance, **kwargs):
         instance.clientprofile.save()
     if hasattr(instance, 'freelancerprofile'):
         instance.freelancerprofile.save()
+class JobPosting(models.Model):
+    """
+    Jobs posted by clients for freelancers to apply.
+    """
+    client = models.ForeignKey('ClientProfile', on_delete=models.CASCADE, related_name='job_postings')
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    company_name = models.CharField(max_length=255, blank=True)
+    location = models.CharField(max_length=255, blank=True)
+    is_remote = models.BooleanField(default=False)
+    salary_min = models.PositiveIntegerField(null=True, blank=True)
+    salary_max = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
