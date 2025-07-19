@@ -38,8 +38,26 @@ def admin_all_applications(request):
     })
 @login_required
 def job_posting_list(request):
-    job_postings = JobPosting.objects.filter(is_active=True)
-    return render(request, 'applications/job_posting_list.html', {'job_postings': job_postings})
+    queryset = JobPosting.objects.all()
+
+    q = request.GET.get('q')
+    remote = request.GET.get('remote')
+
+    if q:
+        queryset = queryset.filter(
+            Q(title__icontains=q) |
+            Q(description__icontains=q)
+        )
+
+    if remote == 'yes':
+        queryset = queryset.filter(is_remote=True)
+    elif remote == 'no':
+        queryset = queryset.filter(is_remote=False)
+
+    context = {
+        'job_postings': queryset.order_by('-created_at'),
+    }
+    return render(request, 'applications/job_posting_list.html', context)
 
 @login_required
 def job_posting_detail(request, pk):
