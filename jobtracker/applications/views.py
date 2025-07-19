@@ -32,10 +32,19 @@ def profile(request):
         form = UserProfileForm(instance=request.user)
     return render(request, 'registration/profile.html', {'form': form})
 
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from .models import JobApplication
+from .forms import JobFilterForm
+
 @login_required
 def job_list(request):
-    applications = JobApplication.objects.filter(user=request.user).order_by('-applied_date')
-    form = JobFilterForm(request.GET or None)
+    # Base queryset filtered by current user
+    applications = JobApplication.objects.filter(user=request.user).select_related('company')
+
+    # Form handling
+    form = JobFilterForm(request.GET or None, user=request.user)
 
     if form.is_valid():
         status = form.cleaned_data.get('status')
@@ -48,35 +57,31 @@ def job_list(request):
             applications = applications.filter(source=source)
         if search:
             applications = applications.filter(
-                models.Q(company__name__icontains=search) |
-                models.Q(position__icontains=search)
+                position__icontains=search
+            ) | applications.filter(
+                company__name__icontains=search
             )
 
-    # Pagination
-    paginator = Paginator(applications, 10)  # Show 10 applications per page
-    page_number = request.GET.get('page')
-    try:
-        applications_page = paginator.page(page_number)
-    except PageNotAnInteger:
-        applications_page = paginator.page(1)
-    except EmptyPage:
-        applications_page = paginator.page(paginator.num_pages)
-
-    # Dashboard summary
+    # Dashboard counts
     total_applications = applications.count()
     total_offers = applications.filter(status='OF').count()
     total_rejected = applications.filter(status='RJ').count()
     total_accepted = applications.filter(status='AC').count()
 
-    context = {
-        'applications': applications_page,
+    # Pagination
+    paginator = Paginator(applications.order_by('-applied_date'), 10)  # 10 per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'applications/job_list.html', {
         'form': form,
+        'applications': page_obj,
         'total_applications': total_applications,
         'total_offers': total_offers,
         'total_rejected': total_rejected,
         'total_accepted': total_accepted,
-    }
-    return render(request, 'applications/job_list.html', context)
+    })
+
 
 
 @login_required
