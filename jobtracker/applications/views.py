@@ -11,7 +11,7 @@ from django.http import HttpResponse
 import csv
 from datetime import timedelta
 from .models import JobPosting
-from .forms import JobPostingForm
+from applications.utils import send_application_notification
 from .models import JobApplication, Interview, Company, ClientProfile, FreelancerProfile
 from .forms import (
     JobFilterForm, UserProfileForm, JobApplicationForm,
@@ -287,6 +287,13 @@ def add_application(request):
             application.user = user
             application.save()
             form.save_m2m()
+
+            # ✅ Send notification to client if linked to a job posting
+            if application.job_posting and application.job_posting.client:
+                client_email = application.job_posting.client.user.email
+                freelancer_name = user.username
+                send_application_notification(client_email, application.job_posting.title, freelancer_name)
+
             messages.success(request, 'Application added successfully!')
             return redirect('job_list')
     else:
@@ -296,7 +303,6 @@ def add_application(request):
         'form': form,
         'title': 'Add New Application'
     })
-
 
 # ---------------------------
 # Edit Job Application (Freelancer only)
