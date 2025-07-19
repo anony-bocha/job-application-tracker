@@ -7,9 +7,38 @@ from crispy_forms.bootstrap import PrependedText
 
 from .models import JobApplication, Company, Interview, Tag
 
-# --------------------------
-# Job Filter Form
-# --------------------------
+ROLE_CHOICES = (
+    ('client', 'Client'),
+    ('freelancer', 'Freelancer'),
+)
+
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True, help_text="Required. Enter a valid email address.")
+    role = forms.ChoiceField(choices=ROLE_CHOICES, required=True, label="Signup as")
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2', 'role']
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        role = self.cleaned_data.get('role')
+        # Extend User model or use UserProfile to store roles properly
+        # Here just for demonstration, you should add user profile or permissions instead
+        if role == 'client':
+            user.is_client = True  # you need to add these fields to User or related profile
+        else:
+            user.is_freelancer = True
+        if commit:
+            user.save()
+        return user
+
 class JobFilterForm(forms.Form):
     """
     Allows filtering the job list by status, source, search, and tags.
@@ -34,9 +63,6 @@ class JobFilterForm(forms.Form):
             # Future: Filter tags to user-specific tags if implemented
             self.fields['tags'].queryset = Tag.objects.all()
 
-# --------------------------
-# User Profile Form
-# --------------------------
 class UserProfileForm(forms.ModelForm):
     """
     Allows users to edit their profile details.
@@ -53,48 +79,6 @@ class UserProfileForm(forms.ModelForm):
             raise forms.ValidationError("This email is already in use.")
         return email
 
-# --------------------------
-# Custom User Creation Form
-# --------------------------
-class CustomUserCreationForm(UserCreationForm):
-    """
-    Custom sign-up form using crispy forms for clean layout.
-    """
-    email = forms.EmailField(required=True, help_text="Required. Enter a valid email address.")
-
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2']
-
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
-            raise forms.ValidationError("A user with this email already exists.")
-        return email
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = 'post'
-        self.helper.layout = Layout(
-            Row(
-                Column(PrependedText('username', '<i class="bi bi-person-fill"></i>'), css_class='col-md-6'),
-                Column(PrependedText('email', '<i class="bi bi-envelope-fill"></i>'), css_class='col-md-6'),
-            ),
-            Row(
-                Column(PrependedText('first_name', '<i class="bi bi-person-badge-fill"></i>'), css_class='col-md-6'),
-                Column(PrependedText('last_name', '<i class="bi bi-person-badge-fill"></i>'), css_class='col-md-6'),
-            ),
-            Row(
-                Column(PrependedText('password1', '<i class="bi bi-lock-fill"></i>'), css_class='col-md-6'),
-                Column(PrependedText('password2', '<i class="bi bi-lock-fill"></i>'), css_class='col-md-6'),
-            ),
-            Submit('submit', 'Sign Up', css_class='btn btn-primary btn-block mt-3')
-        )
-
-# --------------------------
-# Job Application Form
-# --------------------------
 class JobApplicationForm(forms.ModelForm):
     """
     Form to create or update a job application.
@@ -128,9 +112,6 @@ class JobApplicationForm(forms.ModelForm):
             self.fields['company'].queryset = Company.objects.all()
             self.fields['tags'].queryset = Tag.objects.all()
 
-# --------------------------
-# Interview Form
-# --------------------------
 class InterviewForm(forms.ModelForm):
     """
     Form to add or edit an interview linked to a job application.

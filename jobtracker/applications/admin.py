@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Company, JobApplication, Interview
 from .models import Tag
-
+from .models import ClientProfile, FreelancerProfile
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ['name']
@@ -24,3 +24,7 @@ class InterviewAdmin(admin.ModelAdmin):
     list_filter = ('date', 'follow_up', 'interview_type')
     search_fields = ('application__position', 'interviewer')
     ordering = ('-date',)
+
+
+admin.site.register(ClientProfile)
+admin.site.register(FreelancerProfile)

@@ -1,25 +1,43 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db import models
-from django.db.models import Count
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout, login
+from django.contrib.auth.decorators import login_required
 from django.views.generic import DeleteView
 from django.urls import reverse_lazy
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.paginator import Paginator
+from django.db.models import Q, Count
+from django.utils import timezone
+from django.http import HttpResponse
+import csv
+from datetime import timedelta
+
+from .models import JobApplication, Interview, Company
 from .forms import (
     JobFilterForm, UserProfileForm, JobApplicationForm,
     InterviewForm, CustomUserCreationForm
 )
-from .models import JobApplication
-from django.utils import timezone
-from datetime import timedelta
-from .models import Interview
-from django.http import HttpResponse 
+
+# ---------------------------
+# Authentication Views
+# ---------------------------
 def custom_logout(request):
     logout(request)
     return redirect('login')
 
+def signup(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('job_list')
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'registration/signup.html', {'form': form})
+
+# ---------------------------
+# Profile View
+# ---------------------------
 @login_required
 def profile(request):
     if request.method == 'POST':
@@ -32,20 +50,42 @@ def profile(request):
         form = UserProfileForm(instance=request.user)
     return render(request, 'registration/profile.html', {'form': form})
 
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from .models import JobApplication
-from .forms import JobFilterForm
+# ---------------------------
+# Dashboard View
+# ---------------------------
+@login_required
+def dashboard(request):
+    user_apps = JobApplication.objects.filter(user=request.user)
+    user_interviews = Interview.objects.filter(application__user=request.user)
 
+    total_apps = user_apps.count()
+    total_interviews = user_interviews.count()
+    recent_apps = user_apps.order_by('-applied_date')[:5]
+    upcoming_interviews = user_interviews.filter(
+        date__gte=timezone.now(),
+        date__lte=timezone.now() + timedelta(days=7)
+    ).order_by('date')
+
+    context = {
+        'total_apps': total_apps,
+        'total_interviews': total_interviews,
+        'recent_apps': recent_apps,
+        'upcoming_interviews': upcoming_interviews,
+        'status_counts': user_apps.values('status').annotate(count=Count('status')),
+        'source_counts': user_apps.values('source').annotate(count=Count('source')),
+        'interview_type_counts': user_interviews.values('interview_type').annotate(count=Count('interview_type')),
+    }
+    return render(request, 'applications/dashboard.html', context)
+
+# ---------------------------
+# Job Application List View
+# ---------------------------
 @login_required
 def job_list(request):
-    # Base queryset filtered by current user
-    applications = JobApplication.objects.filter(user=request.user).select_related('company')
+    user = request.user
+    applications = JobApplication.objects.filter(user=user).order_by('-applied_date')
 
-    # Form handling
-    form = JobFilterForm(request.GET or None, user=request.user)
-
+    form = JobFilterForm(request.GET or None, user=user)
     if form.is_valid():
         status = form.cleaned_data.get('status')
         source = form.cleaned_data.get('source')
@@ -57,67 +97,31 @@ def job_list(request):
             applications = applications.filter(source=source)
         if search:
             applications = applications.filter(
-                position__icontains=search
-            ) | applications.filter(
-                company__name__icontains=search
+                Q(company__name__icontains=search) |
+                Q(position__icontains=search) |
+                Q(notes__icontains=search)
             )
 
-    # Dashboard counts
-    total_applications = applications.count()
-    total_offers = applications.filter(status='OF').count()
-    total_rejected = applications.filter(status='RJ').count()
-    total_accepted = applications.filter(status='AC').count()
-
-    # Pagination
-    paginator = Paginator(applications.order_by('-applied_date'), 10)  # 10 per page
+    paginator = Paginator(applications, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'applications/job_list.html', {
-        'form': form,
-        'applications': page_obj,
-        'total_applications': total_applications,
-        'total_offers': total_offers,
-        'total_rejected': total_rejected,
-        'total_accepted': total_accepted,
-    })
-
-
-
-@login_required
-def dashboard(request):
-    user_apps = JobApplication.objects.filter(user=request.user)
-    user_interviews = Interview.objects.filter(application__user=request.user)
-
-    total_apps = user_apps.count()
-    status_counts = user_apps.values('status').annotate(count=Count('status'))
-    source_counts = user_apps.values('source').annotate(count=Count('source'))
-
-    total_interviews = user_interviews.count()
-    upcoming_interviews = user_interviews.filter(date__gte=timezone.now(), date__lte=timezone.now() + timedelta(days=7)).order_by('date')
-    interview_type_counts = user_interviews.values('interview_type').annotate(count=Count('interview_type'))
-
-    recent_apps = user_apps.order_by('-applied_date')[:5]
-
     context = {
-        'total_apps': total_apps,
-        'status_counts': status_counts,
-        'source_counts': source_counts,
-        'recent_apps': recent_apps,
-        'total_interviews': total_interviews,
-        'upcoming_interviews': upcoming_interviews,
-        'interview_type_counts': interview_type_counts,
+        'applications': page_obj,
+        'form': form,
+        'total_applications': applications.count(),
+        'total_offers': applications.filter(status='OF').count(),
+        'total_rejected': applications.filter(status='RJ').count(),
+        'total_accepted': applications.filter(status='AC').count(),
     }
+    return render(request, 'applications/job_list.html', context)
 
-    return render(request, 'applications/dashboard.html', context)
-
+# ---------------------------
+# Job Application Detail View
+# ---------------------------
 @login_required
 def application_detail(request, pk):
-    application = get_object_or_404(
-        JobApplication.objects.select_related('company'),
-        pk=pk,
-        user=request.user
-    )
+    application = get_object_or_404(JobApplication.objects.select_related('company'), pk=pk, user=request.user)
     interviews = application.interviews.all()
 
     if request.method == 'POST':
@@ -126,7 +130,7 @@ def application_detail(request, pk):
             interview = interview_form.save(commit=False)
             interview.application = application
             interview.save()
-            messages.success(request, 'Interview added!')
+            messages.success(request, 'Interview added successfully.')
             return redirect('application_detail', pk=pk)
     else:
         interview_form = InterviewForm()
@@ -134,10 +138,13 @@ def application_detail(request, pk):
     context = {
         'application': application,
         'interviews': interviews,
-        'interview_form': interview_form
+        'interview_form': interview_form,
     }
     return render(request, 'applications/application_detail.html', context)
 
+# ---------------------------
+# Add Job Application
+# ---------------------------
 @login_required
 def add_application(request):
     if request.method == 'POST':
@@ -146,6 +153,7 @@ def add_application(request):
             application = form.save(commit=False)
             application.user = request.user
             application.save()
+            form.save_m2m()
             messages.success(request, 'Application added successfully!')
             return redirect('job_list')
     else:
@@ -156,6 +164,9 @@ def add_application(request):
         'title': 'Add New Application'
     })
 
+# ---------------------------
+# Edit Job Application
+# ---------------------------
 @login_required
 def edit_application(request, pk):
     application = get_object_or_404(JobApplication, pk=pk, user=request.user)
@@ -163,7 +174,7 @@ def edit_application(request, pk):
         form = JobApplicationForm(request.POST, instance=application, user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Application updated!')
+            messages.success(request, 'Application updated successfully!')
             return redirect('application_detail', pk=pk)
     else:
         form = JobApplicationForm(instance=application, user=request.user)
@@ -173,6 +184,9 @@ def edit_application(request, pk):
         'title': 'Edit Application'
     })
 
+# ---------------------------
+# Delete Job Application
+# ---------------------------
 class ApplicationDeleteView(DeleteView):
     model = JobApplication
     success_url = reverse_lazy('job_list')
@@ -182,24 +196,17 @@ class ApplicationDeleteView(DeleteView):
         return super().get_queryset().filter(user=self.request.user)
 
     def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Application deleted successfully')
+        messages.success(request, 'Application deleted successfully.')
         return super().delete(request, *args, **kwargs)
 
-def signup(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('job_list')
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'registration/signup.html', {'form': form})
+# ---------------------------
+# Export Applications CSV
+# ---------------------------
 @login_required
 def export_applications_csv(request):
     applications = JobApplication.objects.filter(user=request.user).order_by('-applied_date')
 
-    # Apply filters if present
+    # Apply filters
     status = request.GET.get('status')
     source = request.GET.get('source')
     search = request.GET.get('search')
@@ -210,8 +217,9 @@ def export_applications_csv(request):
         applications = applications.filter(source=source)
     if search:
         applications = applications.filter(
-            models.Q(company__name__icontains=search) |
-            models.Q(position__icontains=search)
+            Q(company__name__icontains=search) |
+            Q(position__icontains=search) |
+            Q(notes__icontains=search)
         )
 
     response = HttpResponse(content_type='text/csv')
