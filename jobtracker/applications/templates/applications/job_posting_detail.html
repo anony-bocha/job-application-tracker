@@ -7,12 +7,16 @@
     <p><strong>Location:</strong> {{ job_posting.location }}</p>
     <p><strong>Remote:</strong> {{ job_posting.is_remote|yesno:"Yes,No" }}</p>
     <p><strong>Salary Range:</strong> 
-        {% if job_posting.salary_min %}{{ job_posting.salary_min }}{% endif %} - 
-        {% if job_posting.salary_max %}{{ job_posting.salary_max }}{% endif %}
+        {% if job_posting.salary_min or job_posting.salary_max %}
+            {{ job_posting.salary_min|default:"N/A" }} - {{ job_posting.salary_max|default:"N/A" }}
+        {% else %}
+            Not specified
+        {% endif %}
     </p>
-    <p><strong>Posted on:</strong> {{ job_posting.created_at }}</p>
+    <p><strong>Posted on:</strong> {{ job_posting.created_at|date:"M d, Y" }}</p>
+
     {% if user.is_authenticated and user.clientprofile %}
-        <a href="{% url 'edit_job_posting' job_posting.pk %}" class="btn btn-primary">Edit Posting</a>
+        <a href="{% url 'edit_job_posting' job_posting.pk %}" class="btn btn-primary me-2">Edit Posting</a>
     {% endif %}
     <a href="{% url 'job_posting_list' %}" class="btn btn-secondary">Back to List</a>
 </div>

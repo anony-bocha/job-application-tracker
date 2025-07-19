@@ -1,19 +1,26 @@
 {% extends 'applications/base.html' %}
 {% block content %}
 <div class="container mt-4">
-    <h2>All Freelancer Applications</h2>
+    <h2 class="mb-4">All Freelancer Applications</h2>
+
     {% if applications %}
-        <ul class="list-group">
-            {% for application in applications %}
-                <li class="list-group-item">
-                    <strong>{{ application.freelancer.user.username }}</strong> applied to
-                    <strong>{{ application.job_posting.title }}</strong> |
-                    {{ application.applied_at|date:"Y-m-d H:i" }}
-                </li>
-            {% endfor %}
-        </ul>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for application in applications %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ application.freelancer.user.username }}</strong> applied to
+                                <strong>{{ application.job_posting.title }}</strong>
+                            </div>
+                            <small class="text-muted">{{ application.applied_at|date:"M d, Y H:i" }}</small>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     {% else %}
-        <p>No applications submitted yet.</p>
+        <div class="alert alert-info">No applications submitted yet.</div>
     {% endif %}
 </div>
 {% endblock %}

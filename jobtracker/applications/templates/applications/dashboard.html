@@ -3,9 +3,9 @@
 <div class="container mt-4">
     <h1 class="mb-4">Dashboard</h1>
 
-    <!-- Application Summary -->
+    <!-- Application Summary Cards -->
     <div class="row">
-        <div class="col-md-3 mb-3">
+        <div class="col-md-4 mb-3">
             <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <i class="bi bi-briefcase display-4 text-primary"></i>
@@ -14,48 +14,6 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-9 mb-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Applications by Status</h5>
-                    {% if status_counts %}
-                        <ul class="list-group list-group-flush">
-                            {% for item in status_counts %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                {{ item.status }} 
-                                <span class="badge bg-primary rounded-pill">{{ item.count }}</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-muted mb-0">No application data yet.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Application Sources -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Applications by Source</h5>
-            {% if source_counts %}
-                <ul class="list-group list-group-flush">
-                    {% for item in source_counts %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ item.source }}
-                        <span class="badge bg-secondary rounded-pill">{{ item.count }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="text-muted mb-0">No source data available.</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Interview Summary -->
-    <div class="row">
         <div class="col-md-4 mb-3">
             <div class="card text-center shadow-sm">
                 <div class="card-body">
@@ -65,43 +23,35 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-8 mb-3">
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">Upcoming Interviews (Next 7 Days)</h5>
-                    {% if upcoming_interviews %}
-                        <ul class="list-group list-group-flush">
-                            {% for interview in upcoming_interviews %}
-                            <li class="list-group-item">
-                                <strong>{{ interview.application.company.name }}</strong> - {{ interview.application.position }}
-                                ({{ interview.interview_type }}) on {{ interview.date|date:"M d, Y H:i" }}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-muted mb-0">No upcoming interviews in the next 7 days.</p>
-                    {% endif %}
+                    <h5 class="card-title">Applications by Status</h5>
+                    <canvas id="statusChart" height="250"></canvas>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Interviews by Type -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Interviews by Type</h5>
-            {% if interview_type_counts %}
-                <ul class="list-group list-group-flush">
-                    {% for item in interview_type_counts %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ item.interview_type }}
-                        <span class="badge bg-info rounded-pill">{{ item.count }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="text-muted mb-0">No interview data yet.</p>
-            {% endif %}
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Applications by Source</h5>
+                    <canvas id="sourceChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Interviews by Type</h5>
+                    <canvas id="interviewChart" height="250"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -124,4 +74,56 @@
         </div>
     </div>
 </div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Applications by Status Chart
+    var statusCtx = document.getElementById('statusChart').getContext('2d');
+    var statusChart = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for item in status_counts %}'{{ item.status }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for item in status_counts %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1', '#20c997', '#fd7e14'],
+            }]
+        }
+    });
+
+    // Applications by Source Chart
+    var sourceCtx = document.getElementById('sourceChart').getContext('2d');
+    var sourceChart = new Chart(sourceCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for item in source_counts %}'{{ item.source }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Applications',
+                data: [{% for item in source_counts %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: '#0d6efd',
+            }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Interviews by Type Chart
+    var interviewCtx = document.getElementById('interviewChart').getContext('2d');
+    var interviewChart = new Chart(interviewCtx, {
+        type: 'pie',
+        data: {
+            labels: [{% for item in interview_type_counts %}'{{ item.interview_type }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for item in interview_type_counts %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1'],
+            }]
+        }
+    });
+});
+</script>
 {% endblock %}
