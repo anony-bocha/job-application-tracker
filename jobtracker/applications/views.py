@@ -10,13 +10,81 @@ from django.utils import timezone
 from django.http import HttpResponse
 import csv
 from datetime import timedelta
-
+from .models import JobPosting
+from .forms import JobPostingForm
 from .models import JobApplication, Interview, Company, ClientProfile, FreelancerProfile
 from .forms import (
     JobFilterForm, UserProfileForm, JobApplicationForm,
     InterviewForm, CustomUserCreationForm
 )
 
+@login_required
+def job_posting_list(request):
+    """
+    List all active job postings for freelancers to browse.
+    """
+    job_postings = JobPosting.objects.filter(is_active=True).order_by('-created_at')
+    context = {
+        'job_postings': job_postings
+    }
+    return render(request, 'applications/job_posting_list.html', context)
+
+
+@login_required
+def job_posting_detail(request, pk):
+    """
+    Show detailed view of a single job posting.
+    """
+    job_posting = get_object_or_404(JobPosting, pk=pk)
+    context = {'job_posting': job_posting}
+    return render(request, 'applications/job_posting_detail.html', context)
+
+
+@login_required
+def job_posting_add(request):
+    """
+    Allow clients to add new job postings.
+    """
+    # Only clients can add job postings
+    if not hasattr(request.user, 'clientprofile'):
+        messages.error(request, "You must be a client to post jobs.")
+        return redirect('job_posting_list')
+
+    if request.method == 'POST':
+        form = JobPostingForm(request.POST)
+        if form.is_valid():
+            job_posting = form.save(commit=False)
+            job_posting.client = request.user.clientprofile
+            job_posting.save()
+            messages.success(request, "Job posting created successfully.")
+            return redirect('job_posting_detail', pk=job_posting.pk)
+    else:
+        form = JobPostingForm()
+
+    return render(request, 'applications/job_posting_form.html', {'form': form})
+
+
+@login_required
+def job_posting_edit(request, pk):
+    """
+    Allow clients to edit their own job postings.
+    """
+    job_posting = get_object_or_404(JobPosting, pk=pk)
+
+    if not hasattr(request.user, 'clientprofile') or job_posting.client != request.user.clientprofile:
+        messages.error(request, "You don't have permission to edit this job posting.")
+        return redirect('job_posting_detail', pk=pk)
+
+    if request.method == 'POST':
+        form = JobPostingForm(request.POST, instance=job_posting)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Job posting updated successfully.")
+            return redirect('job_posting_detail', pk=pk)
+    else:
+        form = JobPostingForm(instance=job_posting)
+
+    return render(request, 'applications/job_posting_form.html', {'form': form})
 
 # ---------------------------
 # Authentication Views
