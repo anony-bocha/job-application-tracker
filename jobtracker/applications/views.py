@@ -39,7 +39,6 @@ def admin_all_applications(request):
 @login_required
 def job_posting_list(request):
     queryset = JobPosting.objects.all()
-
     q = request.GET.get('q')
     remote = request.GET.get('remote')
 
@@ -54,11 +53,14 @@ def job_posting_list(request):
     elif remote == 'no':
         queryset = queryset.filter(is_remote=False)
 
+    paginator = Paginator(queryset.order_by('-created_at'), 6)  # 6 per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'job_postings': queryset.order_by('-created_at'),
+        'job_postings': page_obj,
     }
     return render(request, 'applications/job_posting_list.html', context)
-
 @login_required
 def job_posting_detail(request, pk):
     job_posting = get_object_or_404(JobPosting, pk=pk)
