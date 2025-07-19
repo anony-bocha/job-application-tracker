@@ -3,23 +3,38 @@
 <div class="container mt-4">
     <h2 class="mb-3">Job Postings</h2>
 
-    <!-- Filter and Search -->
-    <form method="get" class="row g-2 mb-4">
+    <!-- Filter and Search Form -->
+    <form method="get" class="row g-2 mb-4" role="search" aria-label="Job postings filter and search">
         <div class="col-md-4">
-            <input type="text" name="q" class="form-control" placeholder="Search by title or description" value="{{ request.GET.q }}">
+            <input
+                type="search"
+                name="q"
+                class="form-control"
+                placeholder="Search by title or description"
+                value="{{ request.GET.q|default_if_none:'' }}"
+                aria-label="Search job postings"
+            >
         </div>
         <div class="col-md-3">
-            <select name="remote" class="form-select">
+            <select
+                name="remote"
+                class="form-select"
+                aria-label="Filter by remote option"
+            >
                 <option value="">Remote Option</option>
                 <option value="yes" {% if request.GET.remote == "yes" %}selected{% endif %}>Remote</option>
                 <option value="no" {% if request.GET.remote == "no" %}selected{% endif %}>On-Site</option>
             </select>
         </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Filter</button>
+        <div class="col-md-2 d-grid">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Filter
+            </button>
         </div>
-        <div class="col-md-3">
-            <a href="{% url 'add_job_posting' %}" class="btn btn-success w-100"><i class="bi bi-plus-circle"></i> Add New Job Posting</a>
+        <div class="col-md-3 d-grid">
+            <a href="{% url 'add_job_posting' %}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Add New Job Posting
+            </a>
         </div>
     </form>
 
@@ -28,54 +43,60 @@
         {% for job in job_postings %}
             <div class="col-md-4 mb-3">
                 <div class="card h-100 shadow-sm rounded-3">
-                    <div class="card-body">
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title">{{ job.title }}</h5>
-                        <p class="card-text">{{ job.description|truncatechars:100 }}</p>
-                        <p class="mb-0"><strong>Location:</strong> {{ job.location }}</p>
-                        <p class="mb-0"><strong>Remote:</strong> {{ job.is_remote|yesno:"Yes,No" }}</p>
-                        <p class="mb-0"><strong>Salary:</strong> 
-                            {% if job.salary_min %}{{ job.salary_min }}{% endif %} - 
-                            {% if job.salary_max %}{{ job.salary_max }}{% endif %}
+                        <p class="card-text flex-grow-1">{{ job.description|truncatechars:100 }}</p>
+                        <p class="mb-1"><strong>Location:</strong> {{ job.location }}</p>
+                        <p class="mb-1"><strong>Remote:</strong> {{ job.is_remote|yesno:"Yes,No" }}</p>
+                        <p class="mb-2"><strong>Salary:</strong> 
+                            {% if job.salary_min %}{{ job.salary_min }}{% else %}N/A{% endif %} - 
+                            {% if job.salary_max %}{{ job.salary_max }}{% else %}N/A{% endif %}
                         </p>
-                        <a href="{% url 'job_posting_detail' job.pk %}" class="btn btn-sm btn-outline-primary mt-2">View</a>
+                        <a href="{% url 'job_posting_detail' job.pk %}" class="btn btn-sm btn-outline-primary mt-auto align-self-start">View Details</a>
                     </div>
                 </div>
             </div>
         {% empty %}
-            <p>No job postings found.</p>
+            <div class="col-12">
+                <p class="text-muted">No job postings found matching your criteria.</p>
+            </div>
         {% endfor %}
     </div>
 
     <!-- Pagination -->
     {% if job_postings.has_other_pages %}
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center mt-4">
+    <nav aria-label="Job postings pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
             {% if job_postings.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.remote %}remote={{ request.GET.remote }}&{% endif %}page={{ job_postings.previous_page_number }}" aria-label="Previous">
+                    <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.remote %}remote={{ request.GET.remote }}&{% endif %}page={{ job_postings.previous_page_number }}" aria-label="Previous page">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
             {% else %}
-                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                <li class="page-item disabled" aria-disabled="true"><span class="page-link">&laquo;</span></li>
             {% endif %}
+
             {% for page_num in job_postings.paginator.page_range %}
                 {% if job_postings.number == page_num %}
-                    <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
                 {% else %}
                     <li class="page-item">
                         <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.remote %}remote={{ request.GET.remote }}&{% endif %}page={{ page_num }}">{{ page_num }}</a>
                     </li>
                 {% endif %}
             {% endfor %}
+
             {% if job_postings.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.remote %}remote={{ request.GET.remote }}&{% endif %}page={{ job_postings.next_page_number }}" aria-label="Next">
+                    <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.remote %}remote={{ request.GET.remote }}&{% endif %}page={{ job_postings.next_page_number }}" aria-label="Next page">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
             {% else %}
-                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                <li class="page-item disabled" aria-disabled="true"><span class="page-link">&raquo;</span></li>
             {% endif %}
         </ul>
     </nav>

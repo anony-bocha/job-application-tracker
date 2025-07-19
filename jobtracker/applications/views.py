@@ -10,17 +10,18 @@ from django.utils import timezone
 from django.http import HttpResponse
 import csv
 from datetime import timedelta
-from .models import JobPosting
-from applications.utils import send_application_notification
-from .models import JobApplication, Interview, Company, ClientProfile, FreelancerProfile
+
+from .models import (
+    JobPosting, JobApplication, Interview,
+    Company, ClientProfile, FreelancerProfile
+)
 from .forms import (
     JobFilterForm, UserProfileForm, JobApplicationForm,
-    InterviewForm, CustomUserCreationForm
+    InterviewForm, CustomUserCreationForm, JobPostingForm
 )
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import JobPosting, ClientProfile
-from .forms import JobPostingForm
+from applications.utils import send_application_notification
+
+
 @login_required
 def client_job_posting_applicants(request, pk):
     job_posting = get_object_or_404(JobPosting, pk=pk, client__user=request.user)
@@ -30,22 +31,25 @@ def client_job_posting_applicants(request, pk):
         'applications': applications,
     })
 
+
 @login_required
 def admin_all_applications(request):
-    applications = JobApplicationToPosting.objects.select_related('job_posting', 'freelancer__user')
+    applications = JobApplication.objects.select_related('job_posting', 'freelancer__user')
     return render(request, 'applications/admin_all_applications.html', {
         'applications': applications,
     })
+
+
 @login_required
 def job_posting_list(request):
     queryset = JobPosting.objects.all()
     q = request.GET.get('q')
     remote = request.GET.get('remote')
+    sort_by = request.GET.get('sort_by', '-created_at')  # default newest first
 
     if q:
         queryset = queryset.filter(
-            Q(title__icontains=q) |
-            Q(description__icontains=q)
+            Q(title__icontains=q) | Q(description__icontains=q)
         )
 
     if remote == 'yes':
@@ -53,33 +57,50 @@ def job_posting_list(request):
     elif remote == 'no':
         queryset = queryset.filter(is_remote=False)
 
-    paginator = Paginator(queryset.order_by('-created_at'), 6)  # 6 per page
+    allowed_sort_fields = ['created_at', '-created_at', 'salary_min', '-salary_min', 'salary_max', '-salary_max']
+    if sort_by not in allowed_sort_fields:
+        sort_by = '-created_at'
+
+    queryset = queryset.order_by(sort_by)
+
+    paginator = Paginator(queryset, 6)  # 6 per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
         'job_postings': page_obj,
+        'page_obj': page_obj,
+        'q': q,
+        'remote': remote,
+        'sort_by': sort_by,
     }
     return render(request, 'applications/job_posting_list.html', context)
+
+
 @login_required
 def job_posting_detail(request, pk):
     job_posting = get_object_or_404(JobPosting, pk=pk)
     return render(request, 'applications/job_posting_detail.html', {'job_posting': job_posting})
 
+
 @login_required
 def add_job_posting(request):
     if not hasattr(request.user, 'clientprofile'):
         return redirect('job_posting_list')
+
     if request.method == 'POST':
         form = JobPostingForm(request.POST)
         if form.is_valid():
             job_posting = form.save(commit=False)
             job_posting.client = request.user.clientprofile
             job_posting.save()
+            messages.success(request, "Job posting added successfully.")
             return redirect('job_posting_detail', pk=job_posting.pk)
     else:
         form = JobPostingForm()
+
     return render(request, 'applications/job_posting_form.html', {'form': form, 'title': 'Add Job Posting'})
+
 
 @login_required
 def edit_job_posting(request, pk):
@@ -94,6 +115,7 @@ def edit_job_posting(request, pk):
         form = JobPostingForm(instance=job_posting)
     return render(request, 'applications/edit_job_posting.html', {'form': form, 'job_posting': job_posting})
 
+
 @login_required
 def delete_job_posting(request, pk):
     job_posting = get_object_or_404(JobPosting, pk=pk, client=request.user.clientprofile)
@@ -104,9 +126,6 @@ def delete_job_posting(request, pk):
     return render(request, 'applications/confirm_delete_job_posting.html', {'job_posting': job_posting})
 
 
-# ---------------------------
-# Authentication Views
-# ---------------------------
 def custom_logout(request):
     logout(request)
     return redirect('login')
@@ -118,15 +137,12 @@ def signup(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('dashboard')  # Redirect to dashboard instead of job_list for better UX
+            return redirect('dashboard')
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/signup.html', {'form': form})
 
 
-# ---------------------------
-# Profile View
-# ---------------------------
 @login_required
 def profile(request):
     if request.method == 'POST':
@@ -140,25 +156,17 @@ def profile(request):
     return render(request, 'registration/profile.html', {'form': form})
 
 
-# ---------------------------
-# Dashboard View
-# ---------------------------
 @login_required
 def dashboard(request):
     user = request.user
 
-    # Determine role and fetch data accordingly
     if hasattr(user, 'clientprofile'):
-        # Client dashboard logic (example: could show projects posted, applications received)
-        # Assuming client can view their posted jobs or some stats
         context = {
             'profile': user.clientprofile,
-            # Add more client-specific context here
         }
         template = 'applications/client_dashboard.html'
 
     elif hasattr(user, 'freelancerprofile'):
-        # Freelancer dashboard logic (e.g., job applications, interviews)
         user_apps = JobApplication.objects.filter(user=user)
         user_interviews = Interview.objects.filter(application__user=user)
 
@@ -183,20 +191,15 @@ def dashboard(request):
         template = 'applications/freelancer_dashboard.html'
 
     else:
-        # Default fallback if no profile found
         messages.warning(request, "Profile data not found.")
         return redirect('profile')
 
     return render(request, template, context)
 
 
-# ---------------------------
-# Job Application List View (Freelancer only)
-# ---------------------------
 @login_required
 def job_list(request):
     user = request.user
-    # Only freelancers have job applications
     if not hasattr(user, 'freelancerprofile'):
         messages.error(request, "Access denied: This page is for freelancers only.")
         return redirect('dashboard')
@@ -238,9 +241,6 @@ def job_list(request):
     return render(request, 'applications/job_list.html', context)
 
 
-# ---------------------------
-# Job Application Detail View (Freelancer only)
-# ---------------------------
 @login_required
 def application_detail(request, pk):
     user = request.user
@@ -270,9 +270,6 @@ def application_detail(request, pk):
     return render(request, 'applications/application_detail.html', context)
 
 
-# ---------------------------
-# Add Job Application (Freelancer only)
-# ---------------------------
 @login_required
 def add_application(request):
     user = request.user
@@ -288,7 +285,7 @@ def add_application(request):
             application.save()
             form.save_m2m()
 
-            # ✅ Send notification to client if linked to a job posting
+            # Send notification to client if linked to a job posting
             if application.job_posting and application.job_posting.client:
                 client_email = application.job_posting.client.user.email
                 freelancer_name = user.username
@@ -304,9 +301,7 @@ def add_application(request):
         'title': 'Add New Application'
     })
 
-# ---------------------------
-# Edit Job Application (Freelancer only)
-# ---------------------------
+
 @login_required
 def edit_application(request, pk):
     user = request.user
@@ -330,16 +325,12 @@ def edit_application(request, pk):
     })
 
 
-# ---------------------------
-# Delete Job Application (Freelancer only)
-# ---------------------------
 class ApplicationDeleteView(DeleteView):
     model = JobApplication
     success_url = reverse_lazy('job_list')
     template_name = 'applications/confirm_delete.html'
 
     def get_queryset(self):
-        # Ensure only freelancer's own applications are deletable
         user = self.request.user
         if not hasattr(user, 'freelancerprofile'):
             return JobApplication.objects.none()
@@ -350,9 +341,6 @@ class ApplicationDeleteView(DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-# ---------------------------
-# Export Applications CSV (Freelancer only)
-# ---------------------------
 @login_required
 def export_applications_csv(request):
     user = request.user
@@ -362,7 +350,6 @@ def export_applications_csv(request):
 
     applications = JobApplication.objects.filter(user=user).order_by('-applied_date')
 
-    # Apply filters
     status = request.GET.get('status')
     source = request.GET.get('source')
     search = request.GET.get('search')
