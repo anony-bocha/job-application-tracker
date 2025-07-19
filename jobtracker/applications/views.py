@@ -83,17 +83,25 @@ def add_job_posting(request):
 
 @login_required
 def edit_job_posting(request, pk):
-    job_posting = get_object_or_404(JobPosting, pk=pk)
-    if request.user.clientprofile != job_posting.client:
-        return redirect('job_posting_list')
+    job_posting = get_object_or_404(JobPosting, pk=pk, client=request.user.clientprofile)
     if request.method == 'POST':
         form = JobPostingForm(request.POST, instance=job_posting)
         if form.is_valid():
             form.save()
+            messages.success(request, 'Job posting updated successfully.')
             return redirect('job_posting_detail', pk=job_posting.pk)
     else:
         form = JobPostingForm(instance=job_posting)
-    return render(request, 'applications/job_posting_form.html', {'form': form, 'title': 'Edit Job Posting'})
+    return render(request, 'applications/edit_job_posting.html', {'form': form, 'job_posting': job_posting})
+
+@login_required
+def delete_job_posting(request, pk):
+    job_posting = get_object_or_404(JobPosting, pk=pk, client=request.user.clientprofile)
+    if request.method == 'POST':
+        job_posting.delete()
+        messages.success(request, 'Job posting deleted successfully.')
+        return redirect('job_posting_list')
+    return render(request, 'applications/confirm_delete_job_posting.html', {'job_posting': job_posting})
 
 
 # ---------------------------

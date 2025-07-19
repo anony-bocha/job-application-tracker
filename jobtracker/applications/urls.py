@@ -5,7 +5,7 @@ urlpatterns = [
     path('export/csv/', views.export_applications_csv, name='export_applications_csv'),  
     path('job-postings/<int:pk>/applicants/', views.client_job_posting_applicants, name='client_job_posting_applicants'),
     path('admin/applications/', views.admin_all_applications, name='admin_all_applications'),
-
+    path('job-postings/<int:pk>/delete/', views.delete_job_posting, name='delete_job_posting'),
     path('job-postings/', views.job_posting_list, name='job_posting_list'),
     path('job-postings/add/', views.add_job_posting, name='add_job_posting'),
     path('job-postings/<int:pk>/', views.job_posting_detail, name='job_posting_detail'),
