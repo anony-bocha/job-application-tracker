@@ -1,0 +1,19 @@
+{% extends 'applications/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ job_posting.title }}</h2>
+    <p>{{ job_posting.description }}</p>
+    <p><strong>Company:</strong> {{ job_posting.company_name }}</p>
+    <p><strong>Location:</strong> {{ job_posting.location }}</p>
+    <p><strong>Remote:</strong> {{ job_posting.is_remote|yesno:"Yes,No" }}</p>
+    <p><strong>Salary Range:</strong> 
+        {% if job_posting.salary_min %}{{ job_posting.salary_min }}{% endif %} - 
+        {% if job_posting.salary_max %}{{ job_posting.salary_max }}{% endif %}
+    </p>
+    <p><strong>Posted on:</strong> {{ job_posting.created_at }}</p>
+    {% if user.is_authenticated and user.clientprofile %}
+        <a href="{% url 'edit_job_posting' job_posting.pk %}" class="btn btn-primary">Edit Posting</a>
+    {% endif %}
+    <a href="{% url 'job_posting_list' %}" class="btn btn-secondary">Back to List</a>
+</div>
+{% endblock %}

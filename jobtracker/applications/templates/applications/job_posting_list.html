@@ -1,0 +1,30 @@
+{% extends 'applications/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Job Postings</h2>
+    <a href="{% url 'add_job_posting' %}" class="btn btn-primary mb-3">Add New Job Posting</a>
+    <div class="row">
+        {% for job in job_postings %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 shadow-sm rounded-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ job.title }}</h5>
+                        <p class="card-text">
+                            {{ job.description|truncatechars:100 }}
+                        </p>
+                        <p class="mb-0"><strong>Location:</strong> {{ job.location }}</p>
+                        <p class="mb-0"><strong>Remote:</strong> {{ job.is_remote|yesno:"Yes,No" }}</p>
+                        <p class="mb-0"><strong>Salary:</strong> 
+                            {% if job.salary_min %}{{ job.salary_min }}{% endif %} - 
+                            {% if job.salary_max %}{{ job.salary_max }}{% endif %}
+                        </p>
+                        <a href="{% url 'job_posting_detail' job.pk %}" class="btn btn-sm btn-outline-primary mt-2">View</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p>No job postings available.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

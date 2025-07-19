@@ -1,0 +1,13 @@
+{% extends 'applications/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button type="submit" class="btn btn-primary mt-2">Save</button>
+        <a href="{% url 'job_posting_list' %}" class="btn btn-secondary mt-2">Cancel</a>
+    </form>
+</div>
+{% endblock %}
