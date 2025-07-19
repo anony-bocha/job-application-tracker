@@ -1,0 +1,19 @@
+{% extends 'applications/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Applicants for: {{ job_posting.title }}</h2>
+    {% if applications %}
+        <ul class="list-group">
+            {% for application in applications %}
+                <li class="list-group-item">
+                    <strong>{{ application.freelancer.user.username }}</strong> |
+                    Applied at: {{ application.applied_at|date:"Y-m-d H:i" }}<br>
+                    <em>{{ application.cover_message|default:"No cover message provided." }}</em>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No freelancers have applied yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

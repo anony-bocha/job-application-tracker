@@ -17,74 +17,64 @@ from .forms import (
     JobFilterForm, UserProfileForm, JobApplicationForm,
     InterviewForm, CustomUserCreationForm
 )
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import JobPosting, ClientProfile
+from .forms import JobPostingForm
+@login_required
+def client_job_posting_applicants(request, pk):
+    job_posting = get_object_or_404(JobPosting, pk=pk, client__user=request.user)
+    applications = job_posting.applications.select_related('freelancer__user')
+    return render(request, 'applications/client_job_posting_applicants.html', {
+        'job_posting': job_posting,
+        'applications': applications,
+    })
 
 @login_required
+def admin_all_applications(request):
+    applications = JobApplicationToPosting.objects.select_related('job_posting', 'freelancer__user')
+    return render(request, 'applications/admin_all_applications.html', {
+        'applications': applications,
+    })
+@login_required
 def job_posting_list(request):
-    """
-    List all active job postings for freelancers to browse.
-    """
-    job_postings = JobPosting.objects.filter(is_active=True).order_by('-created_at')
-    context = {
-        'job_postings': job_postings
-    }
-    return render(request, 'applications/job_posting_list.html', context)
-
+    job_postings = JobPosting.objects.filter(is_active=True)
+    return render(request, 'applications/job_posting_list.html', {'job_postings': job_postings})
 
 @login_required
 def job_posting_detail(request, pk):
-    """
-    Show detailed view of a single job posting.
-    """
     job_posting = get_object_or_404(JobPosting, pk=pk)
-    context = {'job_posting': job_posting}
-    return render(request, 'applications/job_posting_detail.html', context)
-
+    return render(request, 'applications/job_posting_detail.html', {'job_posting': job_posting})
 
 @login_required
-def job_posting_add(request):
-    """
-    Allow clients to add new job postings.
-    """
-    # Only clients can add job postings
+def add_job_posting(request):
     if not hasattr(request.user, 'clientprofile'):
-        messages.error(request, "You must be a client to post jobs.")
         return redirect('job_posting_list')
-
     if request.method == 'POST':
         form = JobPostingForm(request.POST)
         if form.is_valid():
             job_posting = form.save(commit=False)
             job_posting.client = request.user.clientprofile
             job_posting.save()
-            messages.success(request, "Job posting created successfully.")
             return redirect('job_posting_detail', pk=job_posting.pk)
     else:
         form = JobPostingForm()
-
-    return render(request, 'applications/job_posting_form.html', {'form': form})
-
+    return render(request, 'applications/job_posting_form.html', {'form': form, 'title': 'Add Job Posting'})
 
 @login_required
-def job_posting_edit(request, pk):
-    """
-    Allow clients to edit their own job postings.
-    """
+def edit_job_posting(request, pk):
     job_posting = get_object_or_404(JobPosting, pk=pk)
-
-    if not hasattr(request.user, 'clientprofile') or job_posting.client != request.user.clientprofile:
-        messages.error(request, "You don't have permission to edit this job posting.")
-        return redirect('job_posting_detail', pk=pk)
-
+    if request.user.clientprofile != job_posting.client:
+        return redirect('job_posting_list')
     if request.method == 'POST':
         form = JobPostingForm(request.POST, instance=job_posting)
         if form.is_valid():
             form.save()
-            messages.success(request, "Job posting updated successfully.")
-            return redirect('job_posting_detail', pk=pk)
+            return redirect('job_posting_detail', pk=job_posting.pk)
     else:
         form = JobPostingForm(instance=job_posting)
+    return render(request, 'applications/job_posting_form.html', {'form': form, 'title': 'Edit Job Posting'})
 
-    return render(request, 'applications/job_posting_form.html', {'form': form})
 
 # ---------------------------
 # Authentication Views

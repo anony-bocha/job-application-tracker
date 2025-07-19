@@ -19,7 +19,19 @@ class Company(models.Model):
     def __str__(self):
         return self.name
 
+class JobApplicationToPosting(models.Model):
+    job_posting = models.ForeignKey('JobPosting', on_delete=models.CASCADE, related_name='applications')
+    freelancer = models.ForeignKey('FreelancerProfile', on_delete=models.CASCADE, related_name='job_applications')
 
+    cover_message = models.TextField(blank=True)
+    applied_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('job_posting', 'freelancer')
+        ordering = ['-applied_at']
+
+    def __str__(self):
+        return f"{self.freelancer.user.username} applied to {self.job_posting.title}"
 class Tag(models.Model):
     """
     Tags to categorize job applications (e.g., 'Django', 'Remote', 'Urgent').
